@@ -1,6 +1,6 @@
 const int ledMessen = 9;
 const int devSensorPower = 10;
-const int devSensorInput = 12;
+const int devSensorInput = 11;
 const int devPumpePower = 13;
 
 
