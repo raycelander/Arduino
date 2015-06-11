@@ -1,7 +1,8 @@
 const int ledMessen = 9;
 const int devSensorPower = 10;
-const int devPumpePower = 12;
-const int devSensorInput = 13;
+const int devSensorInput = 12;
+const int devPumpePower = 13;
+
 
 void setup() {
   pinMode(devSensorInput, INPUT);
