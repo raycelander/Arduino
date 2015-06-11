@@ -1,11 +1,11 @@
 const int ledMessen = 9;
 const int devSensorPower = 10;
-const int devPumpeOutput = 12;
+const int devPumpePower = 12;
 const int devSensorInput = 13;
 
 void setup() {
   pinMode(devSensorInput, INPUT);
-  pinMode(devPumpeOutput, OUTPUT);
+  pinMode(devPumpePower, OUTPUT);
   pinMode(devSensorPower, OUTPUT);
   pinMode(ledMessen, OUTPUT);
 }
@@ -16,9 +16,9 @@ void loop() {
   delay(1000);
 
   while(digitalRead(devSensorInput) == 1){
-    digitalWrite(devPumpeOutput, HIGH);
+    digitalWrite(devPumpePower, HIGH);
     delay(4000);  
-    digitalWrite(devPumpeOutput, LOW);
+    digitalWrite(devPumpePower, LOW);
     delay(10000);
   }
 
