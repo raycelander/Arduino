@@ -1,6 +1,6 @@
 const int ledMessen = 9;
 const int devSensorPower = 10;
-const int devSensorInput = 11;
+const int devSensorInput = 0;
 const int devPumpePower = 13;
 
 
@@ -16,7 +16,7 @@ void loop() {
   digitalWrite(devSensorPower, HIGH); // Sensor starten
   delay(1000);
 
-  while(digitalRead(devSensorInput) == 1){
+  while(analogRead(devSensorInput) < 310){
     digitalWrite(devPumpePower, HIGH);
     delay(4000);  
     digitalWrite(devPumpePower, LOW);
