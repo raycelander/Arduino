@@ -88,10 +88,22 @@ boolean sendDatas() {
   Serial.println("AT+CIPSEND=4,78");
   Serial.flush();
   if (Serial.find(">")) {
-    lcdPrint("connection ready. sending.");
+    lcdPrint("ready");
     Serial.print(cmd);
     Serial.flush();
-    delay(1000);
+    delay(10);
+
+    int i = 0;
+    while (Serial.available()) {
+      String line = Serial.readStringUntil('\r');
+      lcdPrintLine(line,i,0);
+      delay(1000);
+      i++;
+      if (i == 4){
+        i = 0;
+      }
+    }
+
       
     if (Serial.find("GET")) {
       lcdPrint("datas received");
