@@ -1,24 +1,32 @@
 #include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
+#include "DHT.h"
+#define DHTPIN 13
+#define DHTTYPE DHT22
 
+DHT dht(DHTPIN, DHTTYPE);
 LiquidCrystal_I2C lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 SoftwareSerial wifi(2, 3); // RX, TX
-String GET = "GET /?pom=Buro&temp=24&hum=70  HTTP/1.0\r\nHost: fireproxy.azurewebsites.net\r\n\r\n";
+//String GET = "GET /?pom=Buro&temp=24&hum=70  HTTP/1.0\r\nHost: fireproxy.azurewebsites.net\r\n\r\n";
 String IP = "191.233.85.165";
-String SSID = "SSID";
-String PW = "xton-hhw3-931b-o6c2";
-
+String SSID = "rayNet";
+String PW = "rton-hhw3-931b-o6c2";
+String cmd = "";
+float h = 0.00;
+float t = 0.00;
+String status = "";
+boolean connected = false;
 void setup()
 {
-  pinMode(13, OUTPUT);
-  pinMode(12, OUTPUT);
-  Serial.begin(115200);
-  Serial.setTimeout(5000);
-
+  lcdPrint("Starting up...");
+  dht.begin();
   lcd.begin(20, 4);
+}
 
-  lcdPrint("Resetting module...");
+void loop() {
+  Serial.begin(115200);
+  Serial.setTimeout(15000);
   Serial.println("AT+RST"); // reset and test if module is ready
   Serial.flush();
   delay(1000);
@@ -27,12 +35,13 @@ void setup()
     lcdPrint("Module ready");
   } else {
     lcdPrint("Module not ready");
+    status = "module failed";
     return;
   }
 
   lcdPrint("connecting wifi");
   delay(1000);
-  boolean connected = false;
+  connected = false;
   for (int i = 0; i < 5; i++) {
     if (connectWiFi()) {
       connected = true;
@@ -42,19 +51,29 @@ void setup()
   }
   if (!connected) {
     lcdPrint("could not connect to WiFi…");
+    status = "wifi failed";
     return;
   }
   delay(1000);
   sendDatas();
+  delay(1000);
+  lcdPrint("disconnecting");
+  Serial.println("AT+CIPCLOSE");
+  delay(1000);
+  Serial.end();
+  lcdPrint("");
+  lcdPrintLine("Temp: " + String(t),0,0);
+  lcdPrintLine("Hum : " + String(h),1,0);
+  lcdPrintLine("--------------------",2,0);
+  lcdPrintLine(status,3,0);
+  delay(600000);
 }
-
-void loop() { }
 
 boolean connectWiFi() {
   Serial.println("AT+CWMODE=1");
   Serial.flush();
   delay(1000);
-  String cmd = "AT+CWJAP=\"";
+  cmd = "AT+CWJAP=\"";
   cmd += SSID;
   cmd += "\",\"";
   cmd += PW;
@@ -77,52 +96,50 @@ boolean sendDatas() {
     return false;
   }
 
-  String cmd = "AT+CIPSTART=4,\"TCP\",\"" + IP + "\",80";
+  cmd = "AT+CIPSTART=4,\"TCP\",\"" + IP + "\",80";
   Serial.println(cmd);
   Serial.flush();
   if (Serial.find("OK")) {
-    lcdPrint("connection open");
+    lcdPrint("conn open");
+    delay(1000);
+  }else{
+    lcdPrint("conn failed");
+    delay(1000);
+    return false;
+  }
+  lcdPrint("measuring...");
+
+  for (int i=0;i<10;i++){
+    h = dht.readHumidity();
+    delay(500);
+    t = dht.readTemperature();
+    delay(500);
+    if (!isnan(t) && !isnan(h)){
+      break;
+    }
     delay(1000);
   }
-  cmd = GET;
-  Serial.println("AT+CIPSEND=4,78");
+
+
+  
+  lcdPrintLine("Temp: " + String(t),1,0);
+  lcdPrintLine("Hum : " + String(h),2,0);
+  delay(2000);
+  cmd = "GET /?pom=Buro&temp="+String(t)+"&hum="+String(h)+"  HTTP/1.0\r\nHost: fireproxy.azurewebsites.net\r\n\r\n";
+  delay(2000);
+  Serial.println("AT+CIPSEND=4," + String(cmd.length()));
   Serial.flush();
   if (Serial.find(">")) {
-    lcdPrint("ready");
-    Serial.print(cmd);
-    Serial.flush();
-    delay(10);
-
-    int i = 0;
-    while (Serial.available()) {
-      String line = Serial.readStringUntil('\r');
-      lcdPrintLine(line,i,0);
-      delay(1000);
-      i++;
-      if (i == 4){
-        i = 0;
-      }
-    }
-
-      
-    if (Serial.find("GET")) {
+    lcdPrint("con ready. sending.");
+    Serial.println(cmd);
+    delay(100);
+    if (Serial.find("OK")) {
       lcdPrint("datas received");
-      /*
-      String content = "";
-      char character;
-
-      while (Serial.available()) {
-        character = Serial.read();
-        content.concat(character);
-      }
-
-      if (content != "") {
-        lcdPrint(content);
-      }
+      status = "success";
       delay(5000);
-*/
     } else {
       lcdPrint("datas not received");
+      status = "data failed";
     }
   } else {
     lcdPrint("Connection timeout!");
@@ -140,5 +157,3 @@ void lcdPrintLine(String msg, int line, int row) {
   lcd.setCursor(row, line);
   lcd.print(msg);
 }
-
-
